@@ -7,8 +7,10 @@ Writers leave themselves notes while drafting: `[RESEARCH THIS]`, `TODO: fix the
 - Plain text (`.txt`)
 - Markdown (`.md`, `.markdown`)
 - Microsoft Word (`.docx`)
+- Legacy Microsoft Word (`.doc`) through a locally installed `antiword`, `catdoc`, or LibreOffice reader
+- EPUB (`.epub`)
 
-Markdown headings and Word heading styles are preserved as section names so each result retains useful context.
+Markdown headings, Word heading styles, and EPUB heading elements are preserved as section names so each result retains useful context.
 
 ## Install
 
@@ -23,6 +25,8 @@ python -m pip install -e .
 
 ```bash
 manuscript-placeholders novel.docx
+manuscript-placeholders backlist-title.doc
+manuscript-placeholders reader-copy.epub
 manuscript-placeholders novel.md --format markdown --output revision-checklist.md
 manuscript-placeholders novel.docx --format html --output placeholders.html
 manuscript-placeholders notes.txt --pattern "FLAGME" --format json --output findings.json
@@ -36,7 +40,7 @@ The manuscript stays on the computer. No text is uploaded, and no AI or external
 
 ## Limitations
 
-- Legacy `.doc` and EPUB files are not supported in v1.0.
+- Legacy `.doc` support depends on `antiword`, `catdoc`, or LibreOffice being installed locally and available on `PATH`; modern `.docx` does not need that extra tool.
 - Word tables, headers, footnotes, comments, and tracked changes are not scanned.
 - Natural-language notes that do not match a marker require a custom regular expression.
 - The collector does not rewrite the original manuscript or decide when an item is resolved.
@@ -51,6 +55,6 @@ python -m build
 
 ## Project status
 
-**Feature complete for v1.0.** Format expansions should preserve local-only processing and stable location evidence.
+**Feature complete for v1.1.** Format expansions should preserve local-only processing and stable location evidence.
 
 Released under the [MIT License](LICENSE).

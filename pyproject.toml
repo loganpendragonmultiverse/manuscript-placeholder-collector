@@ -4,14 +4,14 @@ build-backend = "hatchling.build"
 
 [project]
 name = "manuscript-placeholder-collector"
-version = "1.0.0"
-description = "Collect unresolved manuscript notes into a local revision checklist."
+version = "1.1.0"
+description = "Collect unresolved notes from text, Markdown, Word, and EPUB manuscripts into a local revision checklist."
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = ["python-docx>=1.1"]
 license = "MIT"
 authors = [{ name = "Logan Pendragon Multiverse" }]
-keywords = ["writing", "manuscript", "revision", "placeholders"]
+keywords = ["writing", "manuscript", "docx", "epub", "revision", "placeholders"]
 
 [project.scripts]
 manuscript-placeholders = "manuscript_placeholders.cli:main"
