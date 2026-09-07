@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.2.0 - 2026-09-07
+
+- Repair formatting and add opt-in DOCX table/comment/footnote scanning with source locations and a private resolution ledger with baseline comparisons.
+- Added regression coverage for the audited behavior and invalid inputs.
+
 ## 1.1.0 - 2026-07-18
 
 - Added section-aware EPUB ingestion in publication spine order.
