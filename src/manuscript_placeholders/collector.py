@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import re
 import shutil
 import subprocess
@@ -7,12 +8,13 @@ import tempfile
 import zipfile
 from dataclasses import asdict, dataclass
 from html.parser import HTMLParser
-from pathlib import Path
-from pathlib import PurePosixPath
+from pathlib import Path, PurePosixPath
 from urllib.parse import unquote, urlsplit
 from xml.etree import ElementTree
 
 from docx import Document
+
+from .review import extra_docx_blocks
 
 
 @dataclass(frozen=True, slots=True)
@@ -20,6 +22,7 @@ class Block:
     number: int
     text: str
     section: str
+    location: str = ""
 
 
 @dataclass(frozen=True, slots=True)
@@ -29,6 +32,10 @@ class Placeholder:
     section: str
     block: int
     context: str
+    location: str = ""
+    start: int = 0
+    end: int = 0
+    fingerprint: str = ""
 
     def to_dict(self) -> dict[str, object]:
         return asdict(self)
@@ -36,21 +43,48 @@ class Placeholder:
 
 PATTERNS = (
     ("Research", re.compile(r"\[(?:RESEARCH|VERIFY|CHECK|SOURCE)\b[^\]]*\]", re.I)),
-    ("Missing names", re.compile(r"\[(?:NAME|TITLE|SURNAME|PLACE|LOCATION)\b[^\]]*\]", re.I)),
-    ("Revision notes", re.compile(r"\[(?:TODO|FIX|REWRITE|REVISE|EXPAND|CUT)\b[^\]]*\]", re.I)),  # placeholder-detector: ignore -- detector vocabulary
-    ("Revision notes", re.compile(r"\b(?:TODO|FIXME|TK|XXX)\s*[:\-]?\s*[^\n]{0,140}", re.I)),  # placeholder-detector: ignore -- detector vocabulary
+    (
+        "Missing names",
+        re.compile(r"\[(?:NAME|TITLE|SURNAME|PLACE|LOCATION)\b[^\]]*\]", re.I),
+    ),
+    (
+        "Revision notes",
+        re.compile(r"\[(?:TODO|FIX|REWRITE|REVISE|EXPAND|CUT)\b[^\]]*\]", re.I),
+    ),  # placeholder-detector: ignore -- detector vocabulary
+    (
+        "Revision notes",
+        re.compile(r"\b(?:TODO|FIXME|TK|XXX)\s*[:\-]?\s*[^\n]{0,140}", re.I),
+    ),  # placeholder-detector: ignore -- detector vocabulary
     ("Insertions", re.compile(r"<(?:insert|add|describe|write)\b[^>]*>", re.I)),
     ("Uncertain text", re.compile(r"(?<!\?)\?{3,}(?!\?)")),
     ("Bracketed notes", re.compile(r"\[[A-Z][A-Z0-9 _'\-:,.!?]{2,}\]")),
 )
 
 
-def collect(path: Path, extra_patterns: tuple[str, ...] = ()) -> tuple[Placeholder, ...]:
+def collect(
+    path: Path,
+    extra_patterns: tuple[str, ...] = (),
+    *,
+    docx_tables: bool = False,
+    docx_comments: bool = False,
+    docx_footnotes: bool = False,
+) -> tuple[Placeholder, ...]:
     source = path.expanduser().resolve()
     if not source.is_file():
         raise ValueError(f"Not a file: {source}")
     if source.suffix.casefold() == ".docx":
         blocks = _docx_blocks(source)
+        offset = max((block.number for block in blocks), default=0)
+        for number, (location, text) in enumerate(
+            extra_docx_blocks(
+                source,
+                tables=docx_tables,
+                comments=docx_comments,
+                footnotes=docx_footnotes,
+            ),
+            offset + 1,
+        ):
+            blocks.append(Block(number, text, "DOCX optional structure", location))
     elif source.suffix.casefold() == ".doc":
         blocks = _legacy_doc_blocks(source)
     elif source.suffix.casefold() == ".epub":
@@ -58,7 +92,9 @@ def collect(path: Path, extra_patterns: tuple[str, ...] = ()) -> tuple[Placehold
     elif source.suffix.casefold() in {".txt", ".md", ".markdown"}:
         blocks = _text_blocks(source)
     else:
-        raise ValueError("Supported formats are .txt, .md, .markdown, .docx, .doc, and .epub")
+        raise ValueError(
+            "Supported formats are .txt, .md, .markdown, .docx, .doc, and .epub"
+        )
 
     patterns = list(PATTERNS)
     for index, raw in enumerate(extra_patterns, 1):
@@ -76,7 +112,23 @@ def collect(path: Path, extra_patterns: tuple[str, ...] = ()) -> tuple[Placehold
                 if key in seen:
                     continue
                 seen.add(key)
-                found.append(Placeholder(category, match.group(0).strip(), block.section, block.number, _context(block.text, match.start(), match.end())))
+                location = block.location or f"block[{block.number}]"
+                fingerprint = hashlib.sha256(
+                    f"{location}\0{match.start()}\0{match.group(0)}".encode()
+                ).hexdigest()
+                found.append(
+                    Placeholder(
+                        category,
+                        match.group(0).strip(),
+                        block.section,
+                        block.number,
+                        _context(block.text, match.start(), match.end()),
+                        location,
+                        match.start(),
+                        match.end(),
+                        fingerprint,
+                    )
+                )
     found.sort(key=lambda item: (item.block, item.category, item.marker.casefold()))
     return tuple(found)
 
@@ -90,12 +142,12 @@ def _text_blocks(path: Path) -> list[Block]:
         if heading:
             section = heading.group(1).strip()
         if stripped:
-            blocks.append(Block(number, stripped, section))
+            blocks.append(Block(number, line, section, f"line[{number}]"))
     return blocks
 
 
 def _docx_blocks(path: Path) -> list[Block]:
-    document = Document(path)
+    document = Document(str(path))
     blocks: list[Block] = []
     section = "Document"
     for number, paragraph in enumerate(document.paragraphs, 1):
@@ -104,7 +156,14 @@ def _docx_blocks(path: Path) -> list[Block]:
             continue
         if paragraph.style and paragraph.style.name.casefold().startswith("heading"):
             section = text
-        blocks.append(Block(number, text, section))
+        blocks.append(
+            Block(
+                number,
+                paragraph.text,
+                section,
+                f"word/document.xml/paragraph[{number}]",
+            )
+        )
     return blocks
 
 
@@ -112,33 +171,53 @@ def _legacy_doc_blocks(path: Path) -> list[Block]:
     for tool in ("antiword", "catdoc"):
         executable = shutil.which(tool)
         if executable:
-            completed = subprocess.run([executable, str(path)], capture_output=True, check=False)
+            completed = subprocess.run(
+                [executable, str(path)], capture_output=True, check=False
+            )
             if completed.returncode != 0:
                 message = completed.stderr.decode("utf-8", errors="replace").strip()
-                raise ValueError(f"{tool} could not read the DOC file: {message or 'unknown conversion error'}")
+                raise ValueError(
+                    f"{tool} could not read the DOC file: {message or 'unknown conversion error'}"
+                )
             text = completed.stdout.decode("utf-8", errors="replace")
             return _text_content_blocks(text)
 
     office = shutil.which("soffice") or shutil.which("libreoffice")
     if office:
         with tempfile.TemporaryDirectory(prefix="manuscript-doc-") as temporary:
-            completed = subprocess.run(
-                [office, "--headless", "--convert-to", "docx", "--outdir", temporary, str(path)],
+            office_result = subprocess.run(
+                [
+                    office,
+                    "--headless",
+                    "--convert-to",
+                    "docx",
+                    "--outdir",
+                    temporary,
+                    str(path),
+                ],
                 capture_output=True,
                 text=True,
                 check=False,
             )
             converted = Path(temporary) / f"{path.stem}.docx"
-            if completed.returncode != 0 or not converted.is_file():
-                message = completed.stderr.strip() or completed.stdout.strip()
-                raise ValueError(f"LibreOffice could not convert the DOC file: {message or 'unknown conversion error'}")
+            if office_result.returncode != 0 or not converted.is_file():
+                message = office_result.stderr.strip() or office_result.stdout.strip()
+                raise ValueError(
+                    f"LibreOffice could not convert the DOC file: {message or 'unknown conversion error'}"
+                )
             return _docx_blocks(converted)
 
-    raise ValueError("Legacy .doc files need antiword, catdoc, or LibreOffice installed and available on PATH")
+    raise ValueError(
+        "Legacy .doc files need antiword, catdoc, or LibreOffice installed and available on PATH"
+    )
 
 
 def _text_content_blocks(text: str) -> list[Block]:
-    return [Block(number, line.strip(), "Document") for number, line in enumerate(text.splitlines(), 1) if line.strip()]
+    return [
+        Block(number, line.strip(), "Document")
+        for number, line in enumerate(text.splitlines(), 1)
+        if line.strip()
+    ]
 
 
 class _DocumentTextParser(HTMLParser):
@@ -180,8 +259,13 @@ def _epub_blocks(path: Path) -> list[Block]:
     try:
         with zipfile.ZipFile(path) as archive:
             entries = [item for item in archive.infolist() if not item.is_dir()]
-            if len(entries) > 10_000 or sum(item.file_size for item in entries) > 100 * 1024 * 1024:
-                raise ValueError("EPUB exceeds the 10,000-entry or 100 MB uncompressed safety limit")
+            if (
+                len(entries) > 10_000
+                or sum(item.file_size for item in entries) > 100 * 1024 * 1024
+            ):
+                raise ValueError(
+                    "EPUB exceeds the 10,000-entry or 100 MB uncompressed safety limit"
+                )
             container = ElementTree.fromstring(archive.read("META-INF/container.xml"))
             rootfile = container.find(".//{*}rootfile")
             if rootfile is None or not rootfile.get("full-path"):
@@ -192,9 +276,15 @@ def _epub_blocks(path: Path) -> list[Block]:
             manifest = {
                 item.get("id", ""): _safe_epub_name(str(base / item.get("href", "")))
                 for item in package.findall(".//{*}manifest/{*}item")
-                if item.get("id") and item.get("href") and item.get("media-type") in {"application/xhtml+xml", "text/html"}
+                if item.get("id")
+                and item.get("href")
+                and item.get("media-type") in {"application/xhtml+xml", "text/html"}
             }
-            ordered = [manifest[item.get("idref", "")] for item in package.findall(".//{*}spine/{*}itemref") if item.get("idref", "") in manifest]
+            ordered = [
+                manifest[item.get("idref", "")]
+                for item in package.findall(".//{*}spine/{*}itemref")
+                if item.get("idref", "") in manifest
+            ]
             blocks: list[Block] = []
             section = "Document"
             number = 0

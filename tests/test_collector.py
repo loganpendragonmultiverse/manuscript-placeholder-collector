@@ -9,9 +9,16 @@ from manuscript_placeholders.collector import collect
 
 def test_markdown_sections_and_categories(tmp_path: Path) -> None:
     source = tmp_path / "story.md"
-    source.write_text("# Chapter One\nMara entered [NAME THIS TAVERN].\nTODO: improve this exchange\n# Chapter Two\n[RESEARCH inheritance law]\n", encoding="utf-8")
+    source.write_text(
+        "# Chapter One\nMara entered [NAME THIS TAVERN].\nTODO: improve this exchange\n# Chapter Two\n[RESEARCH inheritance law]\n",
+        encoding="utf-8",
+    )
     items = collect(source)
-    assert [item.category for item in items] == ["Missing names", "Revision notes", "Research"]
+    assert [item.category for item in items] == [
+        "Missing names",
+        "Revision notes",
+        "Research",
+    ]
     assert items[0].section == "Chapter One"
     assert items[2].section == "Chapter Two"
 
@@ -60,10 +67,15 @@ def test_epub_spine_and_headings_are_preserved(tmp_path: Path) -> None:
 def test_legacy_doc_uses_local_reader(monkeypatch, tmp_path: Path) -> None:
     source = tmp_path / "story.doc"
     source.write_bytes(b"legacy fixture")
-    monkeypatch.setattr("manuscript_placeholders.collector.shutil.which", lambda tool: "antiword" if tool == "antiword" else None)
+    monkeypatch.setattr(
+        "manuscript_placeholders.collector.shutil.which",
+        lambda tool: "antiword" if tool == "antiword" else None,
+    )
     monkeypatch.setattr(
         "manuscript_placeholders.collector.subprocess.run",
-        lambda *args, **kwargs: subprocess.CompletedProcess(args[0], 0, stdout=b"TODO: revise the ending\n", stderr=b""),
+        lambda *args, **kwargs: subprocess.CompletedProcess(
+            args[0], 0, stdout=b"TODO: revise the ending\n", stderr=b""
+        ),
     )
     items = collect(source)
     assert len(items) == 1
@@ -73,7 +85,9 @@ def test_legacy_doc_uses_local_reader(monkeypatch, tmp_path: Path) -> None:
 def test_legacy_doc_explains_reader_requirement(monkeypatch, tmp_path: Path) -> None:
     source = tmp_path / "story.doc"
     source.write_bytes(b"legacy fixture")
-    monkeypatch.setattr("manuscript_placeholders.collector.shutil.which", lambda tool: None)
+    monkeypatch.setattr(
+        "manuscript_placeholders.collector.shutil.which", lambda tool: None
+    )
     try:
         collect(source)
     except ValueError as exc:
