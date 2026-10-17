@@ -298,8 +298,12 @@ def read_docx(
                         }
                     )
                 )
-                if any(n.tag == W + "vanish" for n in paragraph.iter()):
-                    labels.append("hidden")
+                if any(
+                    n.tag == W + "vanish"
+                    and n.get(W + "val", "true").casefold() not in {"0", "false", "off"}
+                    for n in paragraph.iter()
+                ):
+                    labels.append("paragraph contains hidden text")
                 if any(
                     n.tag in (W + "fldChar", W + "fldSimple") for n in paragraph.iter()
                 ):

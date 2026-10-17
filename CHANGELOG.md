@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.5.2
+
+- Respect explicit OOXML visibility on/off values and label hidden text as paragraph context.
+- Match whole bare-marker tokens while retaining repeated TK and X conventions.
+
 ## 1.5.1
 
 - Verify bounded source SHA-256 before and after collection, rejecting ordinary edit interleavings before any report or ledger is written.
