@@ -13,6 +13,7 @@ from typing import Any
 
 import regex
 
+from . import __version__
 from .docx_reader import read_docx
 
 
@@ -167,7 +168,7 @@ def collect(
         )
     inventory.update(
         multiline=multiline,
-        scanner_version="1.5.0",
+        scanner_version=__version__,
         custom_patterns=list(extra_patterns),
     )
 

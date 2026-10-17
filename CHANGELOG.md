@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.5.1
+
+- Verify bounded source SHA-256 before and after collection, rejecting ordinary edit interleavings before any report or ledger is written.
+- Bind provenance to the verified scan input and derive scanner versions from package metadata.
+
+
 ## 1.5.0
 
 - Complete bounded DOCX story/container traversal, explicit revision/field/hidden policy and faithful text extraction.

@@ -4,15 +4,19 @@
 > I consider this project complete. Fixes, maintenance and good new ideas are still welcome.
 > [About Gold Stars](https://www.loganpendragonforge.com/open-source/?gold=1)
 
-## Gold scope — reviewed for v1.5.0
+## Gold scope — reviewed for v1.5.1
 
-Gold means no meaningful unfinished contribution is currently identified within this tool's documented purpose: collect recognizable drafting markers from supported local manuscript text into a private revision checklist while preserving source files. The seven reviewed coverage, text extraction, review-provenance and failure-recovery groups are complete in [v1.5.0](https://github.com/loganpendragonmultiverse/manuscript-placeholder-collector/releases/tag/v1.5.0).
+Gold means no meaningful unfinished contribution is currently identified within this tool's documented purpose: collect recognizable drafting markers from supported local manuscript text into a private revision checklist while preserving source files. The seven reviewed coverage, text extraction, review-provenance and failure-recovery groups are complete in [v1.5.1](https://github.com/loganpendragonmultiverse/manuscript-placeholder-collector/releases/tag/v1.5.1).
 
-Qualification includes 107 source tests, 107 tests against the actual tag-built wheel, protected OS/Python CI and CodeQL, independent code review, public artifact digest checks and real non-root LibreOffice conversion with unchanged DOC/DOCX input hashes. These are regression and acceptance checks, not 107 distinct user journeys or physical-device certification.
+Qualification includes 111 source tests, 111 tests against the actual tag-built wheel, protected OS/Python CI and CodeQL, independent code review, public artifact digest checks and real non-root LibreOffice conversion with unchanged DOC/DOCX input hashes. These are regression and acceptance checks, not 107 distinct user journeys or physical-device certification.
 
 The boundary remains explicit local text-marker collection. Unsupported embedded or linked content is reported, not silently declared scanned. OCR, rendering, remote fetching, manuscript rewriting and semantic completeness are outside this purpose. Compatibility, security/dependency fixes and further platform testing remain maintenance work; new evidence can reopen this assessment.
 
-## Current release 1.5.0
+## Current release 1.5.1
+
+Bind report provenance to the source that was scanned. The CLI hashes the bounded input before scanning and confirms the same hash after collection. If an ordinary edit changes the manuscript during that interval, it exits 2 before writing a report or ledger; save the manuscript and retry. The reported hash belongs to the verified scan input. This is an ordinary edit guard, not a file lock or a hostile change-and-restore guarantee. The 100 MB input limit and read-only source behavior are unchanged.
+
+## Previous release 1.5.0
 
 Collect local drafting markers with explicit source coverage and document-scoped review records. DOCX uses one story walker for body, content controls, custom XML wrappers and opt-in tables, text boxes, comments, footnotes, endnotes, headers and footers. Tabs and breaks are preserved. The current-text view includes insertions/move-to and excludes deletions/move-from; `--revisions include-revisions` includes and labels revision content. Hidden text is included and labelled. Only cached field results are read; fields are never evaluated.
 

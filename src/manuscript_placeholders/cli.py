@@ -13,9 +13,27 @@ from zipfile import BadZipFile
 
 from docx.opc.exceptions import PackageNotFoundError
 
+from . import __version__
 from .collector import Placeholder, collect
 from .output import validate_output_paths, write_new_outputs
 from .review import review_findings
+
+_MAX_SOURCE_BYTES = 100 * 1024 * 1024
+
+
+def _source_sha256(path: Path) -> str:
+    """Bound source reads while checking ordinary edit interleavings."""
+    if path.stat().st_size > _MAX_SOURCE_BYTES:
+        raise ValueError("Input exceeds 100 MB safety limit")
+    digest = hashlib.sha256()
+    total = 0
+    with path.open("rb") as source:
+        for chunk in iter(lambda: source.read(1024 * 1024), b""):
+            total += len(chunk)
+            if total > _MAX_SOURCE_BYTES:
+                raise ValueError("Input exceeds 100 MB safety limit")
+            digest.update(chunk)
+    return digest.hexdigest()
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -66,9 +84,11 @@ def main(argv: list[str] | None = None) -> int:
     try:
         targets = [p for p in (args.output, args.ledger_output) if p]
         validate_output_paths(targets)
+        source = Path(args.manuscript).expanduser().resolve()
+        source_sha256 = _source_sha256(source)
         coverage: dict[str, object] = {}
         items = collect(
-            Path(args.manuscript),
+            source,
             tuple(args.pattern),
             docx_tables=args.docx_tables,
             docx_comments=args.docx_comments,
@@ -82,12 +102,15 @@ def main(argv: list[str] | None = None) -> int:
             coverage=coverage,
             document_id=args.document_id,
         )
-        source = Path(args.manuscript).expanduser().resolve()
+        if _source_sha256(source) != source_sha256:
+            raise ValueError(
+                "Manuscript changed during scan; save it and retry. No report or ledger was created"
+            )
         provenance = {
             "document_id": args.document_id
             or hashlib.sha256(str(source).encode()).hexdigest(),
-            "source_sha256": hashlib.sha256(source.read_bytes()).hexdigest(),
-            "scanner_version": "1.5.0",
+            "source_sha256": source_sha256,
+            "scanner_version": __version__,
             "coverage": coverage,
         }
         review = review_findings(
