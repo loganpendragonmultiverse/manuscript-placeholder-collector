@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import posixpath
+import re
 import zipfile
 from pathlib import Path
 from typing import Any
@@ -19,6 +20,7 @@ def extra_docx_blocks(
     footnotes: bool,
     headers: bool = False,
     footers: bool = False,
+    endnotes: bool = False,
 ) -> list[tuple[str, str]]:
     result = []
     with zipfile.ZipFile(path) as archive:
@@ -59,6 +61,8 @@ def extra_docx_blocks(
                         result.append(
                             (f"{name}/{tag}[{identifier}]/paragraph[{index}]", text)
                         )
+        if endnotes:
+            result.extend(_endnote_blocks(archive, tables=tables))
         if headers or footers:
             document = ET.fromstring(archive.read("word/document.xml"))
             relations = ET.fromstring(archive.read("word/_rels/document.xml.rels"))
@@ -112,6 +116,86 @@ def extra_docx_blocks(
                                 n.text or "" for n in paragraph.iter(W + "t")
                             )
                             result.append((f"{name}/paragraph[{index}]", text))
+    return result
+
+
+def _inside_xml(
+    node: ET.Element, tag: str, parents: dict[ET.Element, ET.Element]
+) -> bool:
+    while node in parents:
+        node = parents[node]
+        if node.tag == W + tag:
+            return True
+    return False
+
+
+def _endnote_blocks(archive: zipfile.ZipFile, *, tables: bool) -> list[tuple[str, str]]:
+    """Read the declared local endnotes part; never fetch external content."""
+    document = ET.fromstring(archive.read("word/document.xml"))
+    references = list(document.iter(W + "endnoteReference"))
+    relations = ET.fromstring(archive.read("word/_rels/document.xml.rels"))
+    matches = [item for item in relations if item.get("Type", "").endswith("/endnotes")]
+    if not matches:
+        if references:
+            raise ValueError("DOCX endnote references have no endnotes relationship")
+        return []
+    if len(matches) != 1:
+        raise ValueError("DOCX must declare a single endnotes relationship")
+    relation = matches[0]
+    target = relation.get("Target", "")
+    if relation.get("TargetMode", "Internal") != "Internal":
+        raise ValueError("DOCX endnotes must reference a local XML part")
+    name = posixpath.normpath(
+        target.lstrip("/") if target.startswith("/") else posixpath.join("word", target)
+    )
+    if (
+        not target
+        or "\\" in target
+        or ":" in target
+        or "?" in target
+        or "#" in target
+        or not name.startswith("word/")
+    ):
+        raise ValueError("DOCX endnotes has an unsafe part path")
+    if archive.namelist().count(name) != 1:
+        raise ValueError(f"DOCX endnotes part is missing or duplicated: {name}")
+    part = ET.fromstring(archive.read(name))
+    if part.tag != W + "endnotes":
+        raise ValueError("DOCX endnotes part has the wrong root")
+    result: list[tuple[str, str]] = []
+    identifiers: set[int] = set()
+    normal_ids: set[int] = set()
+    for note in part.findall(W + "endnote"):
+        raw_id = note.get(W + "id", "")
+        if not re.fullmatch(r"[+-]?[0-9]+", raw_id):
+            raise ValueError("DOCX endnote needs an integer ID")
+        identifier = int(raw_id)
+        if identifier in identifiers:
+            raise ValueError(f"DOCX has duplicate endnote ID: {identifier}")
+        identifiers.add(identifier)
+        kind = note.get(W + "type", "normal")
+        if kind in {"separator", "continuationSeparator", "continuationNotice"}:
+            continue
+        if kind != "normal":
+            raise ValueError(f"DOCX endnote has an unknown type: {kind}")
+        normal_ids.add(identifier)
+        parents = {child: parent for parent in note.iter() for child in parent}
+
+        for index, paragraph in enumerate(note.iter(W + "p"), 1):
+            if _inside_xml(paragraph, "txbxContent", parents):
+                continue
+            if not tables and _inside_xml(paragraph, "tbl", parents):
+                continue
+            text = "".join(
+                node.text or ""
+                for node in paragraph.iter(W + "t")
+                if not _inside_xml(node, "txbxContent", parents)
+            )
+            result.append((f"{name}/endnote[{identifier}]/paragraph[{index}]", text))
+    for reference in references:
+        raw_id = reference.get(W + "id", "")
+        if not re.fullmatch(r"[+-]?[0-9]+", raw_id) or int(raw_id) not in normal_ids:
+            raise ValueError(f"DOCX endnote reference has no normal endnote: {raw_id}")
     return result
 
 

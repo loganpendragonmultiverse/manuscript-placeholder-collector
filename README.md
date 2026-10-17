@@ -1,6 +1,12 @@
 # Manuscript Placeholder Collector
 
-## Current release 1.3.1
+## Current release 1.4.0
+
+Find drafting notes in DOCX endnotes with `--docx-endnotes`. Normal endnotes in the declared local XML part are scanned once; separator records are skipped. Add `--docx-tables` to include endnote table paragraphs. Reports identify the part, endnote ID and XML paragraph position (including empty and skipped paragraphs), with offsets in the extracted text. These are source locations, not rendered page numbers.
+
+Body-only scanning remains the default. Missing endnote parts, malformed XML, duplicate IDs and unmatched references fail before any report or ledger is written. Existing output files and source manuscripts stay unchanged.
+
+## Updates in 1.3.1
 
 Recover cleanly when writing a report and its companion file fails.
 
@@ -10,7 +16,7 @@ Report and ledger/decision/history files are prepared together. If an ordinary w
 
 Find drafting notes in DOCX headers and footers when you choose to include them.
 
-Use --docx-headers and --docx-footers to scan all referenced header/footer XML parts, including first/even parts even when their display switches are off. Shared parts are scanned once. Add --docx-tables to include paragraphs inside header/footer tables. Locations identify the XML part and paragraph; they do not guess rendered page numbers. Endnotes, text boxes and tracked-change interpretation remain unsupported.
+Use --docx-headers and --docx-footers to scan all referenced header/footer XML parts, including first/even parts even when their display switches are off. Shared parts are scanned once. Add --docx-tables to include paragraphs inside header/footer tables. Locations identify the XML part and paragraph; they do not guess rendered page numbers. Endnotes are available with `--docx-endnotes`; text boxes and tracked-change interpretation remain unsupported.
 
 ## Updates in 1.2.2
 
@@ -65,7 +71,7 @@ The manuscript stays on the computer. No text is uploaded, and no AI or external
 ## Limitations
 
 - Legacy `.doc` support depends on `antiword`, `catdoc`, or LibreOffice being installed locally and available on `PATH`; modern `.docx` does not need that extra tool.
-- DOCX tables, comments and footnotes are scanned only when their explicit flags are enabled. Headers and footers require their explicit flags. Endnotes, text boxes and tracked-change interpretation remain outside the supported scan.
+- DOCX tables, comments and footnotes are scanned only when their explicit flags are enabled. Headers, footers and endnotes require their explicit flags. Text boxes and tracked-change interpretation remain outside the supported scan.
 - Natural-language notes that do not match a marker require a custom regular expression.
 - The collector does not rewrite the original manuscript or decide when an item is resolved.
 
@@ -95,4 +101,4 @@ Repair formatting and add opt-in DOCX table/comment/footnote scanning with sourc
 manuscript-placeholders draft.docx --docx-tables --docx-comments --docx-footnotes --format json --output review.json --ledger-output resolution.json
 ```
 
-DOCX body paragraphs remain the default. Optional structures identify XML part, table/row/cell/paragraph or comment/footnote IDs, plus character offsets within extracted paragraph text. Text files retain line positions. Reports explicitly list enabled/skipped optional structures; headers and footers are available with the 1.3.0 flags; endnotes, text boxes and legacy DOC converter behavior are not expanded. --ledger reads a version 1 items object keyed by finding fingerprint with open/resolved/ignored status and a private note. --ledger-output writes a new ledger preserving old entries. --baseline compares a previous fingerprinted JSON report. Fingerprints include source location, marker offset and marker text, so moved text can appear new. A missing marker does not prove an issue was resolved. Source manuscripts and existing outputs remain untouched.
+DOCX body paragraphs remain the default. Optional structures identify XML part, table/row/cell/paragraph or comment/footnote IDs, plus character offsets within extracted paragraph text. Text files retain line positions. Reports explicitly list enabled/skipped optional structures; headers and footers are available with the 1.3.0 flags; endnotes are available with `--docx-endnotes`; text boxes and legacy DOC converter behavior are not expanded. --ledger reads a version 1 items object keyed by finding fingerprint with open/resolved/ignored status and a private note. --ledger-output writes a new ledger preserving old entries. --baseline compares a previous fingerprinted JSON report. Fingerprints include source location, marker offset and marker text, so moved text can appear new. A missing marker does not prove an issue was resolved. Source manuscripts and existing outputs remain untouched.

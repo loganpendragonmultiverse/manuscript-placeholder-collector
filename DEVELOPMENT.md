@@ -39,3 +39,9 @@ Use --docx-headers and --docx-footers to scan all referenced header/footer XML p
 Recover cleanly when writing a report and its companion file fails.
 
 Report and ledger/decision/history files are prepared together. If an ordinary write fails, the command removes only unchanged files it created, so you can fix the destination and retry. Existing files, source inputs and files changed by another process are preserved. Outputs are UTF-8 with LF endings. This handles ordinary write failures; it does not promise a multi-file transaction through power loss or recall text already read from stdout.
+
+## 1.4.0 endnote acceptance
+
+Use `--docx-endnotes` to scan normal records in the declared local endnotes XML part. XML-part, canonical numeric ID and paragraph positions remain deterministic across repeated scans and table toggles. Paragraph positions count empty paragraphs and skipped table/text-box paragraphs. System separators are excluded; text boxes and tracked-change interpretation remain unsupported.
+
+Verify body-only defaults, custom local part paths, separate footnote IDs, empty and split-run text, source hashes, stable fingerprints, table opt-in, malformed/missing/external parts, duplicate/invalid IDs, unmatched references and all report formats. Exercise report/ledger collisions, partial writes, stdout failure and real non-admin destination failure followed by retry. Do not claim physical-platform acceptance from CI.
