@@ -76,6 +76,8 @@ def collect(
     docx_tables: bool = False,
     docx_comments: bool = False,
     docx_footnotes: bool = False,
+    docx_headers: bool = False,
+    docx_footers: bool = False,
 ) -> tuple[Placeholder, ...]:
     source = path.expanduser().resolve()
     if not source.is_file():
@@ -89,6 +91,8 @@ def collect(
                 tables=docx_tables,
                 comments=docx_comments,
                 footnotes=docx_footnotes,
+                headers=docx_headers,
+                footers=docx_footers,
             ),
             offset + 1,
         ):

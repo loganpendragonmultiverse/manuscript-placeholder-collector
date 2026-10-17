@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.3.0 - 2026-10-17
+
+- Add --docx-headers and --docx-footers with source-part and paragraph locations
+- Scan referenced default, first-page and even-page parts once even when shared by sections
+- Keep body-only defaults, explicit table coverage and original manuscript bytes
+
 ## 1.2.2 - 2026-10-17
 
 - Use a per-conversion temporary LibreOffice profile instead of the caller’s normal profile
