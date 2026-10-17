@@ -4,15 +4,19 @@
 > I consider this project complete. Fixes, maintenance and good new ideas are still welcome.
 > [About Gold Stars](https://www.loganpendragonforge.com/open-source/?gold=1)
 
-## Gold scope — reviewed for v1.5.1
+## What it does
 
-Gold means no meaningful unfinished contribution is currently identified within this tool's documented purpose: collect recognizable drafting markers from supported local manuscript text into a private revision checklist while preserving source files. The seven reviewed coverage, text extraction, review-provenance and failure-recovery groups are complete in [v1.5.1](https://github.com/loganpendragonmultiverse/manuscript-placeholder-collector/releases/tag/v1.5.1).
+Collect drafting notes such as `[RESEARCH THIS]`, `TODO: fix the argument` and `TK` from local manuscripts into a private revision checklist. Supported inputs are text, Markdown, Word and EPUB. Reports include source locations and scan coverage; a local ledger can keep your review status and notes. Source manuscripts are never rewritten.
 
-Qualification includes 111 source tests, 111 tests against the actual tag-built wheel, protected OS/Python CI and CodeQL, independent code review, public artifact digest checks and real non-root LibreOffice conversion with unchanged DOC/DOCX input hashes. These are regression and acceptance checks, not 111 distinct user journeys or physical-device certification.
+Reports describe the text that was extracted and identify skipped or unsupported content. They cannot prove that a manuscript is complete. The tool does not perform OCR, render pages, fetch remote content, rewrite prose or judge meaning.
 
-The boundary remains explicit local text-marker collection. Unsupported embedded or linked content is reported, not silently declared scanned. OCR, rendering, remote fetching, manuscript rewriting and semantic completeness are outside this purpose. Compatibility, security/dependency fixes and further platform testing remain maintenance work; new evidence can reopen this assessment.
+## Current release 1.5.2
 
-## Current release 1.5.1
+Word visibility labels respect explicit on/off values: `w:vanish` set to `0`, `false` or `off` no longer labels visible text as hidden. A mixed paragraph is labelled “paragraph contains hidden text”, so the label describes paragraph context rather than claiming that every finding is hidden. This reads explicit XML properties; it does not resolve inherited Word styles or rendered visibility.
+
+Bare marker tokens end at a word boundary, so ordinary words such as Tkinter and Roman numerals such as XXXV are not drafting notes. Whole-token repeated conventions such as TKTK and XXXX remain recognized.
+
+## Previous release 1.5.1
 
 Bind report provenance to the source that was scanned. The CLI hashes the bounded input before scanning and confirms the same hash after collection. If an ordinary edit changes the manuscript during that interval, it exits 2 before writing a report or ledger; save the manuscript and retry. The reported hash belongs to the verified scan input. This is an ordinary edit guard, not a file lock or a hostile change-and-restore guarantee. The 100 MB input limit and read-only source behavior are unchanged.
 

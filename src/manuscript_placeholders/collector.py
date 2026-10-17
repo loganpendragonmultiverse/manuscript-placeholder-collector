@@ -62,7 +62,9 @@ PATTERNS = (
     ),  # placeholder-detector: ignore -- detector vocabulary
     (
         "Revision notes",
-        re.compile(r"\b(?:TODO|FIXME|TK|XXX)\s*[:\-]?\s*[^\n]{0,140}", re.IGNORECASE),
+        re.compile(
+            r"\b(?:TODO|FIXME|(?:TK)+|X{3,})\b\s*[:\-]?\s*[^\n]{0,140}", re.IGNORECASE
+        ),
     ),  # placeholder-detector: ignore -- detector vocabulary
     (
         "Insertions",

@@ -47,3 +47,11 @@ Verify document-scoped fingerprints and version-2 report/ledger provenance, expl
 ## 1.5.1 source provenance guard
 
 Hash source bytes with the existing 100 MB bound before collecting, verify the same bounded hash after collecting, and bind reports to that verified digest. An ordinary edit interleaving must return CLI 2 before report/ledger creation; unchanged input must report its actual SHA-256. Reject oversized input before scan and check streaming growth without loading the whole source. Sources and existing outputs stay unchanged. This guard does not lock files or claim protection against hostile A-B-A changes. Scanner-version evidence uses package metadata.
+
+## 1.5.2 explicit Word visibility labels
+
+Respect OOXML on/off values for explicit vanish properties. Disabled properties must not produce hidden labels; enabled properties label paragraph context, including mixed visible/hidden runs. Preserve all markers, source bytes, revision selection and cached-field handling. Inherited styles and rendered visibility are not resolved.
+
+## Historical acceptance: v1.5.1
+
+The released v1.5.1 passed 111 source tests and the same 111 tests against its actual tag-built wheel, protected OS/Python CI and CodeQL, independent code review, public artifact digest checks and real non-root LibreOffice conversion with unchanged DOC/DOCX input hashes. These were regression and acceptance checks, not 111 distinct user journeys or physical-device certification. This records that historical release; it does not claim tag-built acceptance for a later candidate.
