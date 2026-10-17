@@ -27,3 +27,9 @@ Reports and ledgers require distinct new paths in existing directories. The coll
 Convert legacy DOC files with a disposable LibreOffice profile.
 
 The LibreOffice fallback creates a disposable profile inside its conversion directory. It does not reuse an open desktop session or require changing your normal LibreOffice configuration. Antiword and catdoc priority is unchanged.
+
+## 1.3.0 acceptance
+
+Find drafting notes in DOCX headers and footers when you choose to include them.
+
+Use --docx-headers and --docx-footers to scan all referenced header/footer XML parts, including first/even parts even when their display switches are off. Shared parts are scanned once. Add --docx-tables to include paragraphs inside header/footer tables. Locations identify the XML part and paragraph; they do not guess rendered page numbers. Endnotes, text boxes and tracked-change interpretation remain unsupported.

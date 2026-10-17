@@ -17,3 +17,9 @@ Verify Return actionable errors for missing output directories and report write 
 Convert legacy DOC files with a disposable LibreOffice profile.
 
 Verify Use a per-conversion temporary LibreOffice profile instead of the caller’s normal profile; Work when the caller cannot create a normal LibreOffice user profile; Cover isolated-profile arguments and unchanged source bytes. Run the full existing quality and build gates; release only through protected PR checks and verified tag artifacts.
+
+## 1.3.0 acceptance
+
+Find drafting notes in DOCX headers and footers when you choose to include them.
+
+Verify Add --docx-headers and --docx-footers with source-part and paragraph locations; Scan referenced default, first-page and even-page parts once even when shared by sections; Keep body-only defaults, explicit table coverage and original manuscript bytes. Run the full existing quality and build gates; release only through protected PR checks and verified tag artifacts.

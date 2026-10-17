@@ -13,6 +13,7 @@ from urllib.parse import unquote, urlsplit
 from xml.etree import ElementTree
 
 from docx import Document
+from lxml.etree import XMLSyntaxError
 
 from .review import extra_docx_blocks
 
@@ -76,12 +77,19 @@ def collect(
     docx_tables: bool = False,
     docx_comments: bool = False,
     docx_footnotes: bool = False,
+    docx_headers: bool = False,
+    docx_footers: bool = False,
 ) -> tuple[Placeholder, ...]:
     source = path.expanduser().resolve()
     if not source.is_file():
         raise ValueError(f"Not a file: {source}")
     if source.suffix.casefold() == ".docx":
-        blocks = _docx_blocks(source)
+        try:
+            blocks = _docx_blocks(source)
+        except (KeyError, XMLSyntaxError) as exc:
+            raise ValueError(
+                "DOCX cannot be read: a required XML part is missing or malformed"
+            ) from exc
         offset = max((block.number for block in blocks), default=0)
         for number, (location, text) in enumerate(
             extra_docx_blocks(
@@ -89,6 +97,8 @@ def collect(
                 tables=docx_tables,
                 comments=docx_comments,
                 footnotes=docx_footnotes,
+                headers=docx_headers,
+                footers=docx_footers,
             ),
             offset + 1,
         ):
