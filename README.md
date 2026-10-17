@@ -1,5 +1,9 @@
 # Manuscript Placeholder Collector
 
+> ⭐ **Gold Star Project**
+> I consider this project complete. Fixes, maintenance and good new ideas are still welcome.
+> [About Gold Stars](https://www.loganpendragonforge.com/open-source/?gold=1)
+
 ## Gold scope — reviewed for v1.5.0
 
 Gold means no meaningful unfinished contribution is currently identified within this tool's documented purpose: collect recognizable drafting markers from supported local manuscript text into a private revision checklist while preserving source files. The seven reviewed coverage, text extraction, review-provenance and failure-recovery groups are complete in [v1.5.0](https://github.com/loganpendragonmultiverse/manuscript-placeholder-collector/releases/tag/v1.5.0).
