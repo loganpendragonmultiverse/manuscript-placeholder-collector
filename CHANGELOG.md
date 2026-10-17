@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.2.2 - 2026-10-17
+
+- Use a per-conversion temporary LibreOffice profile instead of the caller’s normal profile
+- Work when the caller cannot create a normal LibreOffice user profile
+- Cover isolated-profile arguments and unchanged source bytes
+
 ## 1.2.1 - 2026-10-17
 
 - Return actionable errors for missing output directories and report write failures
