@@ -45,6 +45,9 @@ def main(argv: list[str] | None = None) -> int:
             {p.resolve() for p in targets}
         ) != len(targets):
             raise ValueError("outputs must be distinct new files")
+        for target in targets:
+            if not target.parent.is_dir():
+                raise ValueError(f"output directory does not exist: {target.parent}")
         items = collect(
             Path(args.manuscript),
             tuple(args.pattern),
@@ -66,9 +69,8 @@ def main(argv: list[str] | None = None) -> int:
             for name in ("tables", "comments", "footnotes")
         }
         if args.ledger_output:
-            args.ledger_output.write_text(
-                json.dumps(review["ledger"], indent=2) + "\n", encoding="utf-8"
-            )
+            with args.ledger_output.open("x", encoding="utf-8") as ledger_file:
+                ledger_file.write(json.dumps(review["ledger"], indent=2) + "\n")
     except (
         OSError,
         ValueError,
@@ -111,11 +113,16 @@ def main(argv: list[str] | None = None) -> int:
         )
     else:
         report += "\nPrivate resolution review\n" + json.dumps(review, indent=2) + "\n"
-    if args.output:
-        args.output.write_text(report, encoding="utf-8")
-        print(f"Wrote {args.format} report to {args.output}")
-    else:
-        print(report)
+    try:
+        if args.output:
+            with args.output.open("x", encoding="utf-8") as report_file:
+                report_file.write(report)
+            print(f"Wrote {args.format} report to {args.output}")
+        else:
+            print(report)
+    except OSError as exc:
+        print(f"manuscript-placeholders: {exc}", file=sys.stderr)
+        return 2
     return 1 if args.fail_on_findings and items else 0
 
 

@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.2.1 - 2026-10-17
+
+- Return actionable errors for missing output directories and report write failures
+- Preserve new-file-only report and ledger writes
+- Correct optional DOCX structure documentation and current lint compatibility
+
 ## 1.2.0 - 2026-09-07
 
 - Repair formatting and add opt-in DOCX table/comment/footnote scanning with source locations and a private resolution ledger with baseline comparisons.

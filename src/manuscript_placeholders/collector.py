@@ -42,20 +42,28 @@ class Placeholder:
 
 
 PATTERNS = (
-    ("Research", re.compile(r"\[(?:RESEARCH|VERIFY|CHECK|SOURCE)\b[^\]]*\]", re.I)),
+    (
+        "Research",
+        re.compile(r"\[(?:RESEARCH|VERIFY|CHECK|SOURCE)\b[^\]]*\]", re.IGNORECASE),
+    ),
     (
         "Missing names",
-        re.compile(r"\[(?:NAME|TITLE|SURNAME|PLACE|LOCATION)\b[^\]]*\]", re.I),
+        re.compile(r"\[(?:NAME|TITLE|SURNAME|PLACE|LOCATION)\b[^\]]*\]", re.IGNORECASE),
     ),
     (
         "Revision notes",
-        re.compile(r"\[(?:TODO|FIX|REWRITE|REVISE|EXPAND|CUT)\b[^\]]*\]", re.I),
+        re.compile(
+            r"\[(?:TODO|FIX|REWRITE|REVISE|EXPAND|CUT)\b[^\]]*\]", re.IGNORECASE
+        ),
     ),  # placeholder-detector: ignore -- detector vocabulary
     (
         "Revision notes",
-        re.compile(r"\b(?:TODO|FIXME|TK|XXX)\s*[:\-]?\s*[^\n]{0,140}", re.I),
+        re.compile(r"\b(?:TODO|FIXME|TK|XXX)\s*[:\-]?\s*[^\n]{0,140}", re.IGNORECASE),
     ),  # placeholder-detector: ignore -- detector vocabulary
-    ("Insertions", re.compile(r"<(?:insert|add|describe|write)\b[^>]*>", re.I)),
+    (
+        "Insertions",
+        re.compile(r"<(?:insert|add|describe|write)\b[^>]*>", re.IGNORECASE),
+    ),
     ("Uncertain text", re.compile(r"(?<!\?)\?{3,}(?!\?)")),
     ("Bracketed notes", re.compile(r"\[[A-Z][A-Z0-9 _'\-:,.!?]{2,}\]")),
 )
@@ -99,7 +107,7 @@ def collect(
     patterns = list(PATTERNS)
     for index, raw in enumerate(extra_patterns, 1):
         try:
-            patterns.append(("Custom", re.compile(raw, re.I)))
+            patterns.append(("Custom", re.compile(raw, re.IGNORECASE)))
         except re.error as exc:
             raise ValueError(f"Invalid custom pattern {index}: {exc}") from exc
 
@@ -221,7 +229,9 @@ def _text_content_blocks(text: str) -> list[Block]:
 
 
 class _DocumentTextParser(HTMLParser):
-    BLOCK_TAGS = {"p", "li", "blockquote", "pre", "h1", "h2", "h3", "h4", "h5", "h6"}
+    BLOCK_TAGS = frozenset(
+        {"p", "li", "blockquote", "pre", "h1", "h2", "h3", "h4", "h5", "h6"}
+    )
 
     def __init__(self) -> None:
         super().__init__(convert_charrefs=True)

@@ -1,5 +1,11 @@
 # Manuscript Placeholder Collector
 
+## Current release 1.2.1
+
+Handle report destination failures without a traceback and make DOCX scan boundaries consistent.
+
+Reports and ledgers require distinct new paths in existing directories. The collector never creates missing parent folders or replaces an existing report. Optional table/comment/footnote scans remain explicit; headers and footers are not claimed.
+
 Writers leave themselves notes while drafting: `[RESEARCH THIS]`, `TODO: fix the argument`, `<insert description>`, `TK`, or a row of question marks. Manuscript Placeholder Collector gathers those scattered reminders into one private revision checklist.
 
 ## Supported input
@@ -41,7 +47,7 @@ The manuscript stays on the computer. No text is uploaded, and no AI or external
 ## Limitations
 
 - Legacy `.doc` support depends on `antiword`, `catdoc`, or LibreOffice being installed locally and available on `PATH`; modern `.docx` does not need that extra tool.
-- Word tables, headers, footnotes, comments, and tracked changes are not scanned.
+- DOCX tables, comments and footnotes are scanned only when their explicit flags are enabled. Headers, footers, endnotes, text boxes and tracked-change interpretation remain outside the supported scan.
 - Natural-language notes that do not match a marker require a custom regular expression.
 - The collector does not rewrite the original manuscript or decide when an item is resolved.
 
@@ -55,7 +61,7 @@ python -m build
 
 ## Project status
 
-**Feature complete for v1.1.** Format expansions should preserve local-only processing and stable location evidence.
+Current maintenance preserves local-only processing, stable location evidence and the explicit supported-structure boundary.
 
 Released under the [MIT License](LICENSE).
 
