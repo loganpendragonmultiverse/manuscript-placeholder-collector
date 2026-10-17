@@ -23,3 +23,9 @@ Verify Use a per-conversion temporary LibreOffice profile instead of the callerâ
 Find drafting notes in DOCX headers and footers when you choose to include them.
 
 Verify Add --docx-headers and --docx-footers with source-part and paragraph locations; Scan referenced default, first-page and even-page parts once even when shared by sections; Keep body-only defaults, explicit table coverage and original manuscript bytes. Run the full existing quality and build gates; release only through protected PR checks and verified tag artifacts.
+
+## 1.3.1 acceptance
+
+Recover cleanly when writing a report and its companion file fails.
+
+Verify Stage every file before reserving new output names and never overwrite existing destinations; Roll back only unchanged files created by the failed command, preserving concurrent changes; Keep stdout delivery inside the output operation and test permission failures, collisions and retry. Run the full existing quality and build gates; release only through protected PR checks and verified tag artifacts.

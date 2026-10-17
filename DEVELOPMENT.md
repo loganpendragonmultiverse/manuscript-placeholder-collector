@@ -33,3 +33,9 @@ The LibreOffice fallback creates a disposable profile inside its conversion dire
 Find drafting notes in DOCX headers and footers when you choose to include them.
 
 Use --docx-headers and --docx-footers to scan all referenced header/footer XML parts, including first/even parts even when their display switches are off. Shared parts are scanned once. Add --docx-tables to include paragraphs inside header/footer tables. Locations identify the XML part and paragraph; they do not guess rendered page numbers. Endnotes, text boxes and tracked-change interpretation remain unsupported.
+
+## 1.3.1 acceptance
+
+Recover cleanly when writing a report and its companion file fails.
+
+Report and ledger/decision/history files are prepared together. If an ordinary write fails, the command removes only unchanged files it created, so you can fix the destination and retry. Existing files, source inputs and files changed by another process are preserved. Outputs are UTF-8 with LF endings. This handles ordinary write failures; it does not promise a multi-file transaction through power loss or recall text already read from stdout.

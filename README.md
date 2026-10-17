@@ -1,6 +1,12 @@
 # Manuscript Placeholder Collector
 
-## Current release 1.3.0
+## Current release 1.3.1
+
+Recover cleanly when writing a report and its companion file fails.
+
+Report and ledger/decision/history files are prepared together. If an ordinary write fails, the command removes only unchanged files it created, so you can fix the destination and retry. Existing files, source inputs and files changed by another process are preserved. Outputs are UTF-8 with LF endings. This handles ordinary write failures; it does not promise a multi-file transaction through power loss or recall text already read from stdout.
+
+## Updates in 1.3.0
 
 Find drafting notes in DOCX headers and footers when you choose to include them.
 
@@ -12,7 +18,7 @@ Convert legacy DOC files with a disposable LibreOffice profile.
 
 The LibreOffice fallback creates a disposable profile inside its conversion directory. It does not reuse an open desktop session or require changing your normal LibreOffice configuration. Antiword and catdoc priority is unchanged.
 
-## Current release 1.2.1
+## Updates in 1.2.1
 
 Handle report destination failures without a traceback and make DOCX scan boundaries consistent.
 
