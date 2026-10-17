@@ -93,3 +93,16 @@ def test_invalid_header_parts(tmp_path, mutation):
         extra_docx_blocks(
             source, tables=False, comments=False, footnotes=False, headers=True
         )
+
+
+def test_cli_malformed_header_is_actionable(tmp_path, capsys):
+    source = tmp_path / "bad.docx"
+    fixture(source)
+    with zipfile.ZipFile(source) as z:
+        parts = {n: z.read(n) for n in z.namelist()}
+    parts["word/header1.xml"] = b"<broken"
+    with zipfile.ZipFile(source, "w") as z:
+        for n, content in parts.items():
+            z.writestr(n, content)
+    assert main([str(source), "--docx-headers"]) == 2
+    assert "missing or malformed" in capsys.readouterr().err

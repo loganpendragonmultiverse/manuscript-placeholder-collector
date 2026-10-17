@@ -13,6 +13,7 @@ from urllib.parse import unquote, urlsplit
 from xml.etree import ElementTree
 
 from docx import Document
+from lxml.etree import XMLSyntaxError
 
 from .review import extra_docx_blocks
 
@@ -83,7 +84,12 @@ def collect(
     if not source.is_file():
         raise ValueError(f"Not a file: {source}")
     if source.suffix.casefold() == ".docx":
-        blocks = _docx_blocks(source)
+        try:
+            blocks = _docx_blocks(source)
+        except (KeyError, XMLSyntaxError) as exc:
+            raise ValueError(
+                "DOCX cannot be read: a required XML part is missing or malformed"
+            ) from exc
         offset = max((block.number for block in blocks), default=0)
         for number, (location, text) in enumerate(
             extra_docx_blocks(

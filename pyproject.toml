@@ -14,7 +14,7 @@ authors = [{ name = "Logan Pendragon Multiverse" }]
 keywords = ["writing", "manuscript", "docx", "epub", "revision", "placeholders"]
 
 [project.optional-dependencies]
-dev = ["build>=1.3,<2", "mypy>=1.15,<3", "pytest>=8,<10", "pytest-cov>=6,<8", "ruff>=0.11,<1"]
+dev = ["lxml-stubs>=0.5,<1", "build>=1.3,<2", "mypy>=1.15,<3", "pytest>=8,<10", "pytest-cov>=6,<8", "ruff>=0.11,<1"]
 
 [project.scripts]
 manuscript-placeholders = "manuscript_placeholders.cli:main"
