@@ -8,7 +8,7 @@
 
 Gold means no meaningful unfinished contribution is currently identified within this tool's documented purpose: collect recognizable drafting markers from supported local manuscript text into a private revision checklist while preserving source files. The seven reviewed coverage, text extraction, review-provenance and failure-recovery groups are complete in [v1.5.1](https://github.com/loganpendragonmultiverse/manuscript-placeholder-collector/releases/tag/v1.5.1).
 
-Qualification includes 111 source tests, 111 tests against the actual tag-built wheel, protected OS/Python CI and CodeQL, independent code review, public artifact digest checks and real non-root LibreOffice conversion with unchanged DOC/DOCX input hashes. These are regression and acceptance checks, not 107 distinct user journeys or physical-device certification.
+Qualification includes 111 source tests, 111 tests against the actual tag-built wheel, protected OS/Python CI and CodeQL, independent code review, public artifact digest checks and real non-root LibreOffice conversion with unchanged DOC/DOCX input hashes. These are regression and acceptance checks, not 111 distinct user journeys or physical-device certification.
 
 The boundary remains explicit local text-marker collection. Unsupported embedded or linked content is reported, not silently declared scanned. OCR, rendering, remote fetching, manuscript rewriting and semantic completeness are outside this purpose. Compatibility, security/dependency fixes and further platform testing remain maintenance work; new evidence can reopen this assessment.
 
