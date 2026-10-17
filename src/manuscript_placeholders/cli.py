@@ -38,6 +38,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--docx-footnotes", action="store_true")
     parser.add_argument("--docx-headers", action="store_true")
     parser.add_argument("--docx-footers", action="store_true")
+    parser.add_argument("--docx-endnotes", action="store_true")
     parser.add_argument("--ledger", type=Path)
     parser.add_argument("--ledger-output", type=Path)
     parser.add_argument("--baseline", type=Path)
@@ -53,6 +54,7 @@ def main(argv: list[str] | None = None) -> int:
             docx_footnotes=args.docx_footnotes,
             docx_headers=args.docx_headers,
             docx_footers=args.docx_footers,
+            docx_endnotes=args.docx_endnotes,
         )
         review = review_findings(
             [item.to_dict() for item in items],
@@ -65,7 +67,14 @@ def main(argv: list[str] | None = None) -> int:
             name: "included"
             if getattr(args, "docx_" + name)
             else "skipped unless explicitly enabled"
-            for name in ("tables", "comments", "footnotes", "headers", "footers")
+            for name in (
+                "tables",
+                "comments",
+                "footnotes",
+                "headers",
+                "footers",
+                "endnotes",
+            )
         }
     except (
         OSError,
@@ -175,7 +184,7 @@ def _render(items: tuple[Placeholder, ...], format_name: str, source: str) -> st
     for item in items:
         lines.extend(
             (
-                f"{item.category.upper()} · {item.section} · block {item.block}",
+                f"{item.category.upper()} · {item.section} · block {item.block} · {item.location} chars {item.start}:{item.end}",
                 f"  {item.marker}",
                 f"  {item.context}",
                 "",

@@ -29,3 +29,9 @@ Verify Add --docx-headers and --docx-footers with source-part and paragraph loca
 Recover cleanly when writing a report and its companion file fails.
 
 Verify Stage every file before reserving new output names and never overwrite existing destinations; Roll back only unchanged files created by the failed command, preserving concurrent changes; Keep stdout delivery inside the output operation and test permission failures, collisions and retry. Run the full existing quality and build gates; release only through protected PR checks and verified tag artifacts.
+
+## 1.4.0 endnote acceptance
+
+Use `--docx-endnotes` to scan normal records in the declared local endnotes XML part. XML-part, canonical numeric ID and paragraph positions remain deterministic across repeated scans and table toggles. Paragraph positions count empty paragraphs and skipped table/text-box paragraphs. System separators are excluded; text boxes and tracked-change interpretation remain unsupported.
+
+Verify body-only defaults, custom local part paths, separate footnote IDs, empty and split-run text, source hashes, stable fingerprints, table opt-in, malformed/missing/external parts, duplicate/invalid IDs, unmatched references and all report formats. Exercise report/ledger collisions, partial writes, stdout failure and real non-admin destination failure followed by retry. Do not claim physical-platform acceptance from CI.

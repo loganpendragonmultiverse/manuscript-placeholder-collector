@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.4.0 - 2026-10-17
+
+- Add opt-in DOCX endnote scanning with XML-part, endnote-ID and paragraph locations.
+- Include source locations and character offsets in plain-text reports as well as structured formats.
+- Follow local endnotes relationships, skip separator records and require explicit table scanning.
+- Reject ambiguous parts/IDs and missing references before writing outputs; retain paired-output recovery and source preservation.
+
 ## 1.3.1 - 2026-10-17
 
 - Stage every file before reserving new output names and never overwrite existing destinations
