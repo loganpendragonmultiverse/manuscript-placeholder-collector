@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.5.0
+
+- Complete bounded DOCX story/container traversal, explicit revision/field/hidden policy and faithful text extraction.
+- Report actual coverage, unsupported linked content and reference anchors; validate local part identities.
+- Complete EPUB structural/spine/fallback reading with declared encoding and resource locations.
+- Add document-scoped fingerprints, version-2 review provenance, deliberate legacy/cross-document reuse and unverified removals for coverage changes.
+- Add bounded multiline markers and timed custom patterns; preflight packages, fail on decoding loss and bound local converters.
+- Preserve read-only sources, new-file-only exports and ordinary paired-output retry recovery.
+
+
 ## 1.4.0 - 2026-10-17
 
 - Add opt-in DOCX endnote scanning with XML-part, endnote-ID and paragraph locations.

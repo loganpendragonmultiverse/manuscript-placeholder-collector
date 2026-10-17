@@ -9,3 +9,6 @@ build/
 revision-checklist.md
 placeholders.html
 findings.json
+
+.coverage*
+.forge-write-*.lock

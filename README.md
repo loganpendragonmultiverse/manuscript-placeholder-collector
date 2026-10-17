@@ -1,6 +1,25 @@
 # Manuscript Placeholder Collector
 
-## Current release 1.4.0
+## Current release 1.5.0
+
+Collect local drafting markers with explicit source coverage and document-scoped review records. DOCX uses one story walker for body, content controls, custom XML wrappers and opt-in tables, text boxes, comments, footnotes, endnotes, headers and footers. Tabs and breaks are preserved. The current-text view includes insertions/move-to and excludes deletions/move-from; `--revisions include-revisions` includes and labels revision content. Hidden text is included and labelled. Only cached field results are read; fields are never evaluated.
+
+```bash
+manuscript-placeholders draft.docx --docx-tables --docx-textboxes --docx-comments --docx-footnotes --docx-endnotes --docx-headers --docx-footers --format json --output review.json --ledger-output ledger.json
+manuscript-placeholders draft.md --multiline --format json --output multiline.json
+manuscript-placeholders draft.docx --ledger ledger.json --baseline review.json --format html --output next-review.html
+```
+
+JSON reports and ledgers use version 2, recording a stable document identity, source SHA-256, scanner version and actual scan coverage. Identity defaults to a hash of the absolute source path; use an explicit private `--document-id` consistently when moving a manuscript. Findings are scoped to that identity. Legacy or cross-document review files require `--allow-cross-document` after deliberate review; imported statuses only apply to matching fingerprints. Coverage changes put missing findings in `unverified_removals`, never imply resolution. Open/resolved/ignored totals describe currently observed findings; `--fail-on-findings` still exits 1 whenever any markers are observed, regardless of ledger status.
+
+EPUB reads structural text in spine order, includes non-linear spine items, honours declared XML encoding, follows supported local fallback chains and reports unsupported resources as partial coverage. Locations identify package, resource and element, not rendered pages. No scripts or remote resources are executed or fetched. DOCX linked unsupported altChunk, glossary and subdocument content is inventoried; absence of findings is never proof a manuscript is complete.
+
+Package preflight rejects duplicate/encrypted entries, over 10,000 entries or over 100 MB expanded content before parsing. Inputs are limited to 100 MB. Legacy converters have a 30-second timeout; their name/version and body-only scope are recorded. Invalid text decoding fails rather than replacing characters silently. Custom patterns use a 100 ms per-block timeout, a five-second aggregate budget, a 2048-character pattern limit and bounded finding counts; empty matches are rejected. Optional text multiline scanning preserves contiguous lines within one Markdown section. Built-in bracket/angle markers have an 8192-character bound; oversized candidate markers fail actionably rather than producing a falsely complete report. Prefix length does not split a short marker.
+
+Sources and existing outputs remain unchanged. Ordinary report/ledger write failures remain retryable; this is not a power-loss transaction. Unsupported/encrypted resources are reported or rejected, never guessed. This is a local text-marker collector, not OCR, a renderer, a revision editor or a semantic completeness checker.
+
+## Previous release 1.4.0
+
 
 Find drafting notes in DOCX endnotes with `--docx-endnotes`. Normal endnotes in the declared local XML part are scanned once; separator records are skipped. Add `--docx-tables` to include endnote table paragraphs. Reports identify the part, endnote ID and XML paragraph position (including empty and skipped paragraphs), with offsets in the extracted text. These are source locations, not rendered page numbers.
 
@@ -16,7 +35,7 @@ Report and ledger/decision/history files are prepared together. If an ordinary w
 
 Find drafting notes in DOCX headers and footers when you choose to include them.
 
-Use --docx-headers and --docx-footers to scan all referenced header/footer XML parts, including first/even parts even when their display switches are off. Shared parts are scanned once. Add --docx-tables to include paragraphs inside header/footer tables. Locations identify the XML part and paragraph; they do not guess rendered page numbers. Endnotes are available with `--docx-endnotes`; text boxes and tracked-change interpretation remain unsupported.
+Use --docx-headers and --docx-footers to scan all referenced header/footer XML parts, including first/even parts even when their display switches are off. Shared parts are scanned once. Add --docx-tables to include paragraphs inside header/footer tables. Locations identify the XML part and paragraph; they do not guess rendered page numbers. Endnotes are available with `--docx-endnotes`; text boxes and explicit revision policies are available in 1.5.0.
 
 ## Updates in 1.2.2
 
@@ -71,7 +90,7 @@ The manuscript stays on the computer. No text is uploaded, and no AI or external
 ## Limitations
 
 - Legacy `.doc` support depends on `antiword`, `catdoc`, or LibreOffice being installed locally and available on `PATH`; modern `.docx` does not need that extra tool.
-- DOCX tables, comments and footnotes are scanned only when their explicit flags are enabled. Headers, footers and endnotes require their explicit flags. Text boxes and tracked-change interpretation remain outside the supported scan.
+- DOCX tables, comments and footnotes are scanned only when their explicit flags are enabled. Headers, footers and endnotes require their explicit flags. Text boxes require `--docx-textboxes`; revision policy and actual coverage are documented above.
 - Natural-language notes that do not match a marker require a custom regular expression.
 - The collector does not rewrite the original manuscript or decide when an item is resolved.
 
@@ -101,4 +120,4 @@ Repair formatting and add opt-in DOCX table/comment/footnote scanning with sourc
 manuscript-placeholders draft.docx --docx-tables --docx-comments --docx-footnotes --format json --output review.json --ledger-output resolution.json
 ```
 
-DOCX body paragraphs remain the default. Optional structures identify XML part, table/row/cell/paragraph or comment/footnote IDs, plus character offsets within extracted paragraph text. Text files retain line positions. Reports explicitly list enabled/skipped optional structures; headers and footers are available with the 1.3.0 flags; endnotes are available with `--docx-endnotes`; text boxes and legacy DOC converter behavior are not expanded. --ledger reads a version 1 items object keyed by finding fingerprint with open/resolved/ignored status and a private note. --ledger-output writes a new ledger preserving old entries. --baseline compares a previous fingerprinted JSON report. Fingerprints include source location, marker offset and marker text, so moved text can appear new. A missing marker does not prove an issue was resolved. Source manuscripts and existing outputs remain untouched.
+DOCX body paragraphs remain the default. Optional structures identify XML part, table/row/cell/paragraph or comment/footnote IDs, plus character offsets within extracted paragraph text. Text files retain line positions. Reports explicitly list enabled/skipped optional structures; headers and footers are available with the 1.3.0 flags; endnotes are available with `--docx-endnotes`; 1.5.0 adds text boxes and bounded converter provenance. Historical 1.2.0 --ledger reads a version 1 items object keyed by finding fingerprint with open/resolved/ignored status and a private note. --ledger-output writes a new ledger preserving old entries. --baseline compares a previous fingerprinted JSON report. Fingerprints include source location, marker offset and marker text, so moved text can appear new. A missing marker does not prove an issue was resolved. Source manuscripts and existing outputs remain untouched.

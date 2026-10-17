@@ -26,6 +26,25 @@ def test_opt_in_docx_tables_comments_footnotes_have_locations(tmp_path: Path) ->
             "word/footnotes.xml",
             f'<w:footnotes {ns}><w:footnote w:id="3"><w:p><w:r><w:t>[SOURCE footnote]</w:t></w:r></w:p></w:footnote></w:footnotes>',
         )
+    from xml.etree import ElementTree as ET
+
+    with ZipFile(source) as archive:
+        parts = {name: archive.read(name) for name in archive.namelist()}
+    relpath = "word/_rels/document.xml.rels"
+    rels = ET.fromstring(parts[relpath])
+    for kind in ("comments", "footnotes"):
+        ET.SubElement(
+            rels,
+            "{http://schemas.openxmlformats.org/package/2006/relationships}Relationship",
+            Id=kind,
+            Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/"
+            + kind,
+            Target=kind + ".xml",
+        )
+    parts[relpath] = ET.tostring(rels)
+    with ZipFile(source, "w") as archive:
+        for name, value in parts.items():
+            archive.writestr(name, value)
     original = source.read_bytes()
     assert len(collect(source)) == 1
     found = collect(source, docx_tables=True, docx_comments=True, docx_footnotes=True)

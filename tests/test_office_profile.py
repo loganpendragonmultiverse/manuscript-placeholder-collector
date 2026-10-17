@@ -20,6 +20,10 @@ def test_libreoffice_uses_disposable_profile_and_preserves_source(
 
     def convert(args, **kwargs):
         commands.append(args)
+        if "--version" in args:
+            return subprocess.CompletedProcess(
+                args, 0, b"LibreOffice test-version", b""
+            )
         target = Path(args[args.index("--outdir") + 1])
         assert "-env:UserInstallation=" + (target / "profile").as_uri() in args
         document = Document()
@@ -29,5 +33,5 @@ def test_libreoffice_uses_disposable_profile_and_preserves_source(
 
     monkeypatch.setattr(collector.subprocess, "run", convert)
     result = collector.collect(source)
-    assert result and len(commands) == 1
+    assert result and len(commands) == 2
     assert source.read_bytes() == b"synthetic legacy document"
