@@ -131,6 +131,19 @@ def test_footnote_and_endnote_ids_remain_distinct(tmp_path):
         "[RESEARCH note]</w:t></w:r></w:p></w:footnote></w:footnotes>"
     ).encode()
     save(path, parts)
+    from xml.etree import ElementTree as ET
+
+    relpath = "word/_rels/document.xml.rels"
+    rels = ET.fromstring(parts[relpath])
+    ET.SubElement(
+        rels,
+        "{http://schemas.openxmlformats.org/package/2006/relationships}Relationship",
+        Id="footnotes",
+        Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/footnotes",
+        Target="footnotes.xml",
+    )
+    parts[relpath] = ET.tostring(rels)
+    save(path, parts)
     found = collect(path, docx_endnotes=True, docx_footnotes=True)
     assert any("/footnote[7]/" in x.location for x in found)
     assert any("/endnote[7]/" in x.location for x in found)

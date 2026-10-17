@@ -5,17 +5,15 @@ import re
 import shutil
 import subprocess
 import tempfile
-import zipfile
+import time
 from dataclasses import asdict, dataclass
-from html.parser import HTMLParser
-from pathlib import Path, PurePosixPath
-from urllib.parse import unquote, urlsplit
-from xml.etree import ElementTree
+from itertools import islice
+from pathlib import Path
+from typing import Any
 
-from docx import Document
-from lxml.etree import XMLSyntaxError
+import regex
 
-from .review import extra_docx_blocks
+from .docx_reader import read_docx
 
 
 @dataclass(frozen=True, slots=True)
@@ -37,6 +35,10 @@ class Placeholder:
     start: int = 0
     end: int = 0
     fingerprint: str = ""
+    start_line: int = 0
+    start_column: int = 0
+    end_line: int = 0
+    end_column: int = 0
 
     def to_dict(self) -> dict[str, object]:
         return asdict(self)
@@ -80,61 +82,156 @@ def collect(
     docx_headers: bool = False,
     docx_footers: bool = False,
     docx_endnotes: bool = False,
+    docx_textboxes: bool = False,
+    revisions: str = "current",
+    multiline: bool = False,
+    coverage: dict[str, object] | None = None,
+    document_id: str | None = None,
 ) -> tuple[Placeholder, ...]:
     source = path.expanduser().resolve()
     if not source.is_file():
         raise ValueError(f"Not a file: {source}")
-    if source.suffix.casefold() == ".docx":
-        try:
-            blocks = _docx_blocks(source)
-        except (KeyError, XMLSyntaxError) as exc:
-            raise ValueError(
-                "DOCX cannot be read: a required XML part is missing or malformed"
-            ) from exc
-        offset = max((block.number for block in blocks), default=0)
-        for number, (location, text) in enumerate(
-            extra_docx_blocks(
-                source,
-                tables=docx_tables,
-                comments=docx_comments,
-                footnotes=docx_footnotes,
-                headers=docx_headers,
-                footers=docx_footers,
-                endnotes=docx_endnotes,
-            ),
-            offset + 1,
-        ):
-            blocks.append(Block(number, text, "DOCX optional structure", location))
-    elif source.suffix.casefold() == ".doc":
+    identity = document_id or hashlib.sha256(str(source).encode()).hexdigest()
+    inventory: dict[str, object] = {} if coverage is None else coverage
+    options = {
+        "tables": docx_tables,
+        "comments": docx_comments,
+        "footnotes": docx_footnotes,
+        "headers": docx_headers,
+        "footers": docx_footers,
+        "endnotes": docx_endnotes,
+        "textboxes": docx_textboxes,
+    }
+    suffix = source.suffix.casefold()
+    if suffix != ".docx" and any(options.values()):
+        raise ValueError("DOCX structure options apply only to .docx inputs")
+    if revisions not in ("current", "include-revisions"):
+        raise ValueError("Unknown revision policy")
+    if source.stat().st_size > 100 * 1024 * 1024:
+        raise ValueError("Input exceeds 100 MB safety limit")
+    if suffix == ".docx":
+        blocks = [
+            Block(n, text, section, location)
+            for n, (location, text, section) in enumerate(
+                read_docx(source, options, inventory, revisions=revisions), 1
+            )
+        ]
+    elif suffix == ".doc":
         blocks = _legacy_doc_blocks(source)
-    elif source.suffix.casefold() == ".epub":
-        blocks = _epub_blocks(source)
-    elif source.suffix.casefold() in {".txt", ".md", ".markdown"}:
+        inventory.update(
+            format="doc",
+            converter=_converter_description(),
+            scope="converter body text only",
+            complete_selected_scope=False,
+        )
+    elif suffix == ".epub":
+        from .epub import read_epub
+
+        blocks = [Block(*item) for item in read_epub(source, inventory)]
+    elif suffix in {".txt", ".md", ".markdown"}:
         blocks = _text_blocks(source)
+        inventory.update(
+            format="text", encoding="utf-8-sig; strict", complete_selected_scope=True
+        )
+        if multiline:
+            combined: list[Block] = []
+            chunk: list[Block] = []
+            for block in blocks:
+                if chunk and (
+                    block.number != chunk[-1].number + 1
+                    or block.section != chunk[-1].section
+                ):
+                    combined.append(
+                        Block(
+                            chunk[0].number,
+                            "\n".join(b.text for b in chunk),
+                            chunk[0].section,
+                            chunk[0].location,
+                        )
+                    )
+                    chunk = []
+                chunk.append(block)
+            if chunk:
+                combined.append(
+                    Block(
+                        chunk[0].number,
+                        "\n".join(b.text for b in chunk),
+                        chunk[0].section,
+                        chunk[0].location,
+                    )
+                )
+            blocks = combined
     else:
         raise ValueError(
             "Supported formats are .txt, .md, .markdown, .docx, .doc, and .epub"
         )
+    inventory.update(
+        multiline=multiline,
+        scanner_version="1.5.0",
+        custom_patterns=list(extra_patterns),
+    )
 
-    patterns = list(PATTERNS)
+    patterns: list[tuple[str, Any]] = list(PATTERNS)
     for index, raw in enumerate(extra_patterns, 1):
         try:
-            patterns.append(("Custom", re.compile(raw, re.IGNORECASE)))
-        except re.error as exc:
+            if len(raw) > 2048:
+                raise ValueError("Custom pattern exceeds 2048-character limit")
+            compiled = regex.compile(raw, regex.IGNORECASE)
+            if compiled.search("") is not None:
+                raise ValueError("Custom patterns must not match empty text")
+            patterns.append(("Custom", compiled))
+        except (re.error, regex.error) as exc:
             raise ValueError(f"Invalid custom pattern {index}: {exc}") from exc
 
+    deadline = time.monotonic() + 5
     found: list[Placeholder] = []
-    seen: set[tuple[int, int, int]] = set()
+    seen: set[tuple[int, int, int, str]] = set()
+    opener = re.compile(
+        r"\[(?:RESEARCH|VERIFY|CHECK|SOURCE|NAME|TITLE|SURNAME|PLACE|LOCATION|TODO|FIX|REWRITE|REVISE|EXPAND|CUT)\b|<(?:insert|add|describe|write)\b",
+        re.IGNORECASE,
+    )
     for block in blocks:
+        for start in opener.finditer(block.text):
+            closing = "]" if start.group(0).startswith("[") else ">"
+            end = block.text.find(closing, start.start(), start.start() + 8192)
+            if end == -1 and len(block.text) - start.start() > 8192:
+                raise ValueError(
+                    "Drafting marker exceeds 8192-character bound; no complete report produced"
+                )
         for category, pattern in patterns:
-            for match in pattern.finditer(block.text):
-                key = (block.number, match.start(), match.end())
+            if category == "Custom" and time.monotonic() > deadline:
+                raise ValueError("Custom patterns exceeded five-second scan budget")
+            try:
+                matches = (
+                    list(islice(pattern.finditer(block.text, timeout=0.1), 10001))
+                    if category == "Custom"
+                    else list(islice(pattern.finditer(block.text), 10001))
+                )
+            except TimeoutError as exc:
+                raise ValueError(
+                    "Custom pattern exceeded 100 ms processing limit"
+                ) from exc
+            if len(matches) > 10000 or len(found) > 100000:
+                raise ValueError("Finding count exceeds bounded report limit")
+            for match in matches:
+                if match.start() == match.end():
+                    raise ValueError("Custom patterns must not match empty text")
+                if category != "Custom" and any(
+                    item.block == block.number
+                    and item.start <= match.start() < item.end
+                    for item in found
+                ):
+                    continue
+                policy = (
+                    "custom:" + pattern.pattern if category == "Custom" else "builtin"
+                )
+                key = (block.number, match.start(), match.end(), policy)
                 if key in seen:
                     continue
                 seen.add(key)
                 location = block.location or f"block[{block.number}]"
                 fingerprint = hashlib.sha256(
-                    f"{location}\0{match.start()}\0{match.group(0)}".encode()
+                    f"{identity}\0{location}\0{match.start()}\0{match.group(0)}\0{policy}".encode()
                 ).hexdigest()
                 found.append(
                     Placeholder(
@@ -147,6 +244,10 @@ def collect(
                         match.start(),
                         match.end(),
                         fingerprint,
+                        block.number + block.text[: match.start()].count("\n"),
+                        len(block.text[: match.start()].rsplit("\n", 1)[-1]) + 1,
+                        block.number + block.text[: match.end()].count("\n"),
+                        len(block.text[: match.end()].rsplit("\n", 1)[-1]) + 1,
                     )
                 )
     found.sort(key=lambda item: (item.block, item.category, item.marker.casefold()))
@@ -167,24 +268,10 @@ def _text_blocks(path: Path) -> list[Block]:
 
 
 def _docx_blocks(path: Path) -> list[Block]:
-    document = Document(str(path))
-    blocks: list[Block] = []
-    section = "Document"
-    for number, paragraph in enumerate(document.paragraphs, 1):
-        text = paragraph.text.strip()
-        if not text:
-            continue
-        if paragraph.style and paragraph.style.name.casefold().startswith("heading"):
-            section = text
-        blocks.append(
-            Block(
-                number,
-                paragraph.text,
-                section,
-                f"word/document.xml/paragraph[{number}]",
-            )
-        )
-    return blocks
+    return [
+        Block(n, text, section, location)
+        for n, (location, text, section) in enumerate(read_docx(path, {}, {}), 1)
+    ]
 
 
 def _legacy_doc_blocks(path: Path) -> list[Block]:
@@ -192,14 +279,19 @@ def _legacy_doc_blocks(path: Path) -> list[Block]:
         executable = shutil.which(tool)
         if executable:
             completed = subprocess.run(
-                [executable, str(path)], capture_output=True, check=False
+                [executable, str(path)], capture_output=True, check=False, timeout=30
             )
             if completed.returncode != 0:
                 message = completed.stderr.decode("utf-8", errors="replace").strip()
                 raise ValueError(
                     f"{tool} could not read the DOC file: {message or 'unknown conversion error'}"
                 )
-            text = completed.stdout.decode("utf-8", errors="replace")
+            try:
+                text = completed.stdout.decode("utf-8")
+            except UnicodeDecodeError as exc:
+                raise ValueError(
+                    f"{tool} output is not valid UTF-8; no report produced"
+                ) from exc
             return _text_content_blocks(text)
 
     office = shutil.which("soffice") or shutil.which("libreoffice")
@@ -219,6 +311,7 @@ def _legacy_doc_blocks(path: Path) -> list[Block]:
                 capture_output=True,
                 text=True,
                 check=False,
+                timeout=30,
             )
             converted = Path(temporary) / f"{path.stem}.docx"
             if office_result.returncode != 0 or not converted.is_file():
@@ -241,95 +334,29 @@ def _text_content_blocks(text: str) -> list[Block]:
     ]
 
 
-class _DocumentTextParser(HTMLParser):
-    BLOCK_TAGS = frozenset(
-        {"p", "li", "blockquote", "pre", "h1", "h2", "h3", "h4", "h5", "h6"}
-    )
-
-    def __init__(self) -> None:
-        super().__init__(convert_charrefs=True)
-        self.current: str | None = None
-        self.depth = 0
-        self.buffer: list[str] = []
-        self.blocks: list[tuple[str, str]] = []
-
-    def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
-        if tag in self.BLOCK_TAGS:
-            if self.current is None:
-                self.current = tag
-                self.depth = 1
-                self.buffer = []
-            else:
-                self.depth += 1
-
-    def handle_endtag(self, tag: str) -> None:
-        if self.current is None or tag not in self.BLOCK_TAGS:
-            return
-        self.depth -= 1
-        if self.depth == 0:
-            text = " ".join("".join(self.buffer).split())
-            if text:
-                self.blocks.append((self.current, text))
-            self.current = None
-            self.buffer = []
-
-    def handle_data(self, data: str) -> None:
-        if self.current is not None:
-            self.buffer.append(data)
-
-
-def _epub_blocks(path: Path) -> list[Block]:
-    try:
-        with zipfile.ZipFile(path) as archive:
-            entries = [item for item in archive.infolist() if not item.is_dir()]
-            if (
-                len(entries) > 10_000
-                or sum(item.file_size for item in entries) > 100 * 1024 * 1024
-            ):
-                raise ValueError(
-                    "EPUB exceeds the 10,000-entry or 100 MB uncompressed safety limit"
+def _converter_description() -> dict[str, str]:
+    for name in ("antiword", "catdoc", "soffice", "libreoffice"):
+        executable = shutil.which(name)
+        if executable:
+            try:
+                run = subprocess.run(
+                    [executable, "--version"],
+                    capture_output=True,
+                    timeout=5,
+                    check=False,
                 )
-            container = ElementTree.fromstring(archive.read("META-INF/container.xml"))
-            rootfile = container.find(".//{*}rootfile")
-            if rootfile is None or not rootfile.get("full-path"):
-                raise ValueError("EPUB container does not identify a package document")
-            package_name = _safe_epub_name(rootfile.get("full-path", ""))
-            package = ElementTree.fromstring(archive.read(package_name))
-            base = PurePosixPath(package_name).parent
-            manifest = {
-                item.get("id", ""): _safe_epub_name(str(base / item.get("href", "")))
-                for item in package.findall(".//{*}manifest/{*}item")
-                if item.get("id")
-                and item.get("href")
-                and item.get("media-type") in {"application/xhtml+xml", "text/html"}
-            }
-            ordered = [
-                manifest[item.get("idref", "")]
-                for item in package.findall(".//{*}spine/{*}itemref")
-                if item.get("idref", "") in manifest
-            ]
-            blocks: list[Block] = []
-            section = "Document"
-            number = 0
-            for item_name in ordered:
-                parser = _DocumentTextParser()
-                parser.feed(archive.read(item_name).decode("utf-8", errors="replace"))
-                for tag, text in parser.blocks:
-                    number += 1
-                    if tag.startswith("h"):
-                        section = text
-                    blocks.append(Block(number, text, section))
-            return blocks
-    except (KeyError, zipfile.BadZipFile, ElementTree.ParseError) as exc:
-        raise ValueError(f"EPUB cannot be read: {exc}") from exc
-
-
-def _safe_epub_name(name: str) -> str:
-    decoded = unquote(urlsplit(name).path)
-    pure = PurePosixPath(decoded.replace("\\", "/"))
-    if pure.is_absolute() or not pure.parts or ".." in pure.parts:
-        raise ValueError(f"EPUB contains an unsafe path: {name}")
-    return str(pure)
+                version = (
+                    (run.stdout or run.stderr)
+                    .decode("utf-8", errors="replace")
+                    .splitlines()
+                )
+                return {
+                    "name": name,
+                    "version": version[0][:200] if version else "not reported",
+                }
+            except (OSError, subprocess.TimeoutExpired):
+                return {"name": name, "version": "unavailable"}
+    return {"name": "unavailable", "version": "unavailable"}
 
 
 def _context(text: str, start: int, end: int) -> str:
