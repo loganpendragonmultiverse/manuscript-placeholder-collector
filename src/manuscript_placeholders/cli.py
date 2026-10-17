@@ -48,7 +48,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument(
         "--multiline",
         action="store_true",
-        help="scan contiguous text lines in bounded 8192-character windows",
+        help="scan contiguous text lines within each section; markers are bounded to 8192 characters",
     )
     parser.add_argument(
         "--allow-cross-document",
