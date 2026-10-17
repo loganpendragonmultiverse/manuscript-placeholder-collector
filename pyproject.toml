@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "manuscript-placeholder-collector"
-version = "1.2.1"
+version = "1.2.2"
 description = "Collect unresolved notes from text, Markdown, Word, and EPUB manuscripts into a local revision checklist."
 readme = "README.md"
 requires-python = ">=3.10"

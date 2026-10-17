@@ -196,6 +196,7 @@ def _legacy_doc_blocks(path: Path) -> list[Block]:
             office_result = subprocess.run(
                 [
                     office,
+                    "-env:UserInstallation=" + (Path(temporary) / "profile").as_uri(),
                     "--headless",
                     "--convert-to",
                     "docx",

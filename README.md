@@ -1,5 +1,11 @@
 # Manuscript Placeholder Collector
 
+## Current release 1.2.2
+
+Convert legacy DOC files with a disposable LibreOffice profile.
+
+The LibreOffice fallback creates a disposable profile inside its conversion directory. It does not reuse an open desktop session or require changing your normal LibreOffice configuration. Antiword and catdoc priority is unchanged.
+
 ## Current release 1.2.1
 
 Handle report destination failures without a traceback and make DOCX scan boundaries consistent.

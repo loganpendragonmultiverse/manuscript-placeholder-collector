@@ -21,3 +21,9 @@ Local formatting, lint, strict types and regression tests pass. Public release c
 Handle report destination failures without a traceback and make DOCX scan boundaries consistent.
 
 Reports and ledgers require distinct new paths in existing directories. The collector never creates missing parent folders or replaces an existing report. Optional table/comment/footnote scans remain explicit; headers and footers are not claimed.
+
+## 1.2.2 acceptance
+
+Convert legacy DOC files with a disposable LibreOffice profile.
+
+The LibreOffice fallback creates a disposable profile inside its conversion directory. It does not reuse an open desktop session or require changing your normal LibreOffice configuration. Antiword and catdoc priority is unchanged.
