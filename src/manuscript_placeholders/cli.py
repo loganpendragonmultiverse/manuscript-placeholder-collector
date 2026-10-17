@@ -12,6 +12,7 @@ from zipfile import BadZipFile
 from docx.opc.exceptions import PackageNotFoundError
 
 from .collector import Placeholder, collect
+from .output import validate_output_paths, write_new_outputs
 from .review import review_findings
 
 
@@ -43,13 +44,7 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
     try:
         targets = [p for p in (args.output, args.ledger_output) if p]
-        if any(p.exists() for p in targets) or len(
-            {p.resolve() for p in targets}
-        ) != len(targets):
-            raise ValueError("outputs must be distinct new files")
-        for target in targets:
-            if not target.parent.is_dir():
-                raise ValueError(f"output directory does not exist: {target.parent}")
+        validate_output_paths(targets)
         items = collect(
             Path(args.manuscript),
             tuple(args.pattern),
@@ -72,9 +67,6 @@ def main(argv: list[str] | None = None) -> int:
             else "skipped unless explicitly enabled"
             for name in ("tables", "comments", "footnotes", "headers", "footers")
         }
-        if args.ledger_output:
-            with args.ledger_output.open("x", encoding="utf-8") as ledger_file:
-                ledger_file.write(json.dumps(review["ledger"], indent=2) + "\n")
     except (
         OSError,
         ValueError,
@@ -118,12 +110,21 @@ def main(argv: list[str] | None = None) -> int:
     else:
         report += "\nPrivate resolution review\n" + json.dumps(review, indent=2) + "\n"
     try:
+        outputs = []
         if args.output:
-            with args.output.open("x", encoding="utf-8") as report_file:
-                report_file.write(report)
+            outputs.append((args.output, report))
+        if args.ledger_output:
+            outputs.append(
+                (args.ledger_output, json.dumps(review["ledger"], indent=2) + "\n")
+            )
+
+        def deliver() -> None:
+            sys.stdout.write(report)
+            sys.stdout.flush()
+
+        write_new_outputs(outputs, deliver=None if args.output else deliver)
+        if args.output:
             print(f"Wrote {args.format} report to {args.output}")
-        else:
-            print(report)
     except OSError as exc:
         print(f"manuscript-placeholders: {exc}", file=sys.stderr)
         return 2
