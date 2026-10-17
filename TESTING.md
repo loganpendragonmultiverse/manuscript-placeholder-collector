@@ -51,3 +51,7 @@ Hash source bytes with the existing 100 MB bound before collecting, verify the s
 ## 1.5.2 explicit Word visibility labels
 
 Respect OOXML on/off values for explicit vanish properties. Disabled properties must not produce hidden labels; enabled properties label paragraph context, including mixed visible/hidden runs. Preserve all markers, source bytes, revision selection and cached-field handling. Inherited styles and rendered visibility are not resolved.
+
+## Historical acceptance: v1.5.1
+
+The released v1.5.1 passed 111 source tests and the same 111 tests against its actual tag-built wheel, protected OS/Python CI and CodeQL, independent code review, public artifact digest checks and real non-root LibreOffice conversion with unchanged DOC/DOCX input hashes. These were regression and acceptance checks, not 111 distinct user journeys or physical-device certification. This records that historical release; it does not claim tag-built acceptance for a later candidate.
